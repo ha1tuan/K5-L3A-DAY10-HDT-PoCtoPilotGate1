@@ -42,3 +42,22 @@ Mã commit, mã lần chạy (`runs/<mã>`), dòng trong phiếu.
 ### Exit ticket
 
 Một điều học được, một điều còn chưa chắc.
+
+
+## NguyenThiThuHa-2A202603719
+
+### Phần việc phụ trách
+
+Vai: chưa chốt (bàn chốt sau). Phiếu A câu 1.3, mục A2 cột Offline (offline metric cho bước ghi lỗi hãng); dòng thành viên của mình trong bảng ở trên.
+
+### Đóng góp cụ thể
+
+Thiết kế offline metric cho bước ghi lỗi hãng (file_carrier_fault): thước đo, dữ liệu (trace và label.faults trong data/tickets.jsonl), cách tính, điểm mù. Dùng AI (Claude) để đọc lab10/agent.py, lab10/tools.py, data/tickets.jsonl và soạn bản nháp câu 1.3 cùng khung mục cá nhân này.
+
+### Bằng chứng
+
+Nhánh lab10-dev, các commit: Phiếu A câu 1.3: offline metric cho bước ghi lỗi hãng; Add Nguyễn Thị Thu Hà to TEAM.md. Mã commit trên main: điền sau khi merge.
+
+### Exit ticket
+
+Chưa viết.
