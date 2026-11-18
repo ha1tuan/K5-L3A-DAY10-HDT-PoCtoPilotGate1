@@ -52,12 +52,12 @@ trợ lý có đang gây thiệt hại cho bên ngoài LogiX không; không có 
 
 | | Offline, cho MỘT bước (câu 1.3) | Telemetry production (câu 1.4) |
 |---|---|---|
-| **Bước / hành vi được đo** | | |
-| **Thước đo** (một câu, có đơn vị) | | |
-| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | | |
-| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | |
-| **Điểm mù** (thước đo này KHÔNG thấy gì) | | |
+| **Bước / hành vi được đo** | Ghi lỗi cho hãng: agent có chỉ ghi lỗi khi dữ liệu đơn hàng/tracking và chính sách cho thấy hãng đó chịu trách nhiệm hay không. | Tín hiệu hậu kiểm về tác động bên ngoài của hành động ghi lỗi hãng: khiếu nại/kháng nghị của hãng đối với các thông báo lỗi đã gửi. |
+| **Thước đo** (một câu, có đơn vị) | Tỷ lệ ghi lỗi hãng oan (% số hành động `file_carrier_fault` được gán nhãn là sai trách nhiệm). | Tỷ lệ thông báo lỗi hãng bị hãng phản đối trên mỗi 100 thông báo đã gửi; đây là chỉ báo thay thế để phát hiện nguy cơ quy lỗi oan, không phải nhãn đúng/sai tức thời. |
+| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | Trace và sự kiện công cụ `file_carrier_fault` của bộ nền (22 ticket × 5 seed); đối chiếu với parcel/tracking và quy tắc trách nhiệm trong `data/world.json`. Kỹ sư cổng trích xuất, vận hành/pháp lý gán nhãn theo bằng chứng nguồn; bất đồng được hai người cùng rà soát. | Nhật ký production/outbox các thông báo `notify_carrier` (ticket, parcel, carrier, thời điểm) ghép với phản hồi/kháng nghị của hãng và kết quả đối soát tuần. Vận hành ghi nhận sự kiện; pháp lý/đối soát xác minh phản hồi. Không cần nhãn trong thời điểm chạy, chỉ dùng tín hiệu phản đối của hãng khi hậu kiểm. |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | Số hành động `file_carrier_fault` mà người gán nhãn xác nhận sai hãng hoặc không đủ bằng chứng ÷ tổng hành động `file_carrier_fault` có thể gán nhãn × 100%. Tính trên các lần chạy có hành động ghi lỗi; ca không có hành động không thuộc mẫu số. Thiếu trace/bằng chứng thì ghi “không đánh giá được”, loại khỏi mẫu số và báo riêng số lượng; không mặc định là đúng. | Số thông báo `notify_carrier` bị hãng phản đối trong cửa sổ ÷ số thông báo đã gửi trong cùng cửa sổ × 100. Ghép theo mã thông báo/ticket/parcel; thiếu phản hồi không tính là phản đối, nhưng báo riêng tỷ lệ thông báo chưa có phản hồi để tránh hiểu nhầm là không có vấn đề. |
+| **Khung thời gian / ngưỡng báo động** | (không áp dụng) | Theo dõi cửa sổ trượt 7 ngày, cập nhật hằng ngày. Báo động và tạm dừng tự động `file_carrier_fault` để người rà soát nếu có từ 3 phản đối đã xác minh trong 7 ngày **hoặc** tỷ lệ phản đối vượt 5% khi đã gửi ít nhất 20 thông báo. Đây là ngưỡng khởi điểm của pilot; rà soát sau tuần đầu cùng vận hành/pháp lý. |
+| **Điểm mù** (thước đo này KHÔNG thấy gì) | Không phát hiện trường hợp dữ liệu tracking/nguồn sự thật cũng sai hoặc nhãn trách nhiệm trong `world.json` đã lỗi thời; bộ nền nhỏ cũng không đại diện hết biến động thực tế. | Hãng có thể không phản đối dù bị quy lỗi sai, hoặc phản đối chậm/không gửi phản hồi; chỉ báo này không phát hiện hoàn tiền sai, rò rỉ PII hay tác hại với khách/shop. |
 
 **Ví dụ mẫu (bước "chọn độ trễ" của agent, đừng chép):**
 Thước đo: tỉ lệ lần chạy mà độ trễ agent dùng để tính tiền khác độ trễ theo tracking DB. Dữ liệu: sự kiện `proposal.delay_days_used`
