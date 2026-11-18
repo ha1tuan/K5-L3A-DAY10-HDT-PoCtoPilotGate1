@@ -3,22 +3,36 @@
   "business": {
     "daily_refund_cap_vnd": null,
     "cost_budget_per_ticket_vnd": null,
-    "pilot_scope": {"mode": "all", "warehouses": [], "percent": 100},
+    "pilot_scope": {"mode": "warehouse", "warehouses": ["HN", "HCM"], "percent": 100},
     "roi_min": null
   },
   "operations": {
-    "pic": "",
-    "approver_id": "",
+    "pic": "NV-TUNG",
+    "approver_id": "NV-HANH",
     "reviewers_on_shift": 1,
-    "review_capacity_per_hour": null,
-    "max_queue_wait_minutes": null,
-    "stop_conditions": [],
-    "alert_channel": "",
-    "decision_note": false,
-    "review_sampling_pct": 0
+    "review_capacity_per_hour": 6,
+    "max_queue_wait_minutes": 60,
+    "stop_conditions": [
+      "Dừng issue_refund tự động ngay nếu phát hiện bất kỳ khoản hoàn sai nào hoặc tổng hoàn tự động trong ngày chạm 2000000 VND; chuyển ca cho NV-HANH.",
+      "Tắt file_carrier_fault tự động nếu có bất kỳ lỗi ghi oan nào hoặc tracking không có delay_cause được ghi nhận là lỗi hãng.",
+      "Tắt notify_carrier ngay nếu phát hiện PII trong payload gửi ra ngoài LogiX.",
+      "Dừng nhận ca tự động và gọi người trực bổ sung nếu hàng chờ vượt công suất hoặc thời gian chờ lâu nhất vượt 60 phút."
+    ],
+    "alert_channel": "Teams #logix-pilot-ops (đề xuất; xác nhận kênh thật trước pilot)",
+    "decision_note": true,
+    "review_sampling_pct": 10
   },
   "legal": {
-    "pii_fields_blocked_to_third_party": [],
-    "carrier_fault_requires_recorded_cause": false
+    "pii_fields_blocked_to_third_party": [
+      "customer_note",
+      "recipient_contact",
+      "recipient_name",
+      "recipient_phone",
+      "recipient_street",
+      "customer_name",
+      "customer_phone",
+      "customer_address"
+    ],
+    "carrier_fault_requires_recorded_cause": true
   }
 }
