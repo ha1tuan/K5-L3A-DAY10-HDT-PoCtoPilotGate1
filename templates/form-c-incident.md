@@ -257,15 +257,15 @@ Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): **`pre_guard(ctx)
 
 ### Câu 3.3 · Một giả định về môi trường mà người thiết kế đã ngầm tin, nhưng nhiều khả năng sai ngoài thực tế
 
-Giả định (thứ nằm NGOÀI phần mềm): …
+Giả định (thứ nằm NGOÀI phần mềm): **Mỗi khi phụ lục/chính sách mới đến ngày hiệu lực, người phụ trách vận hành/chính sách sẽ kịp cập nhật và xác nhận chỉ mục policy đang chạy; tracking của hãng cũng sẽ ghi nguyên nhân chịu trách nhiệm trước khi LogiX ghi lỗi.**
 
-Vì sao có thể sai: …
+Vì sao có thể sai: **Việc phát hành chính sách và đồng bộ chỉ mục là quy trình người-thật, có thể trễ hoặc thiếu xác nhận; S3 cho thấy ngày 02-12-2026 v4 đã hiệu lực từ 01-12 nhưng `index_active` vẫn trỏ v3. Dữ liệu của hãng cũng có thể đến thiếu: S3-20 có `delay_cause:null` và `cause_recorded:false`. Vì vậy không thể dựa vào giả định rằng policy cache và tracking luôn được cập nhật đúng hạn/đủ trường.**
 
 ---
 
 <a id="c6"></a>
 
-## C6 · Câu 3.4 · Fault tree TRƯỚC khi sửa (mã lần chạy: `__________`)
+## C6 · Câu 3.4 · Fault tree TRƯỚC khi sửa (mã lần chạy: `R-S3-before-20261118-171432-c94b28`)
 
 **Khung tư duy.** Đi từ **tác hại** ngược về nguyên nhân, không đi từ lỗi mình tình cờ thấy. Mỗi tầng hỏi "điều gì phải xảy
 ra thì điều trên mới xảy ra", nối bằng **HOẶC** (một trong các nhánh là đủ) hoặc **VÀ** (phải đồng thời). Một biện pháp tốt
@@ -280,21 +280,22 @@ thường biến một nhánh HOẶC thành VÀ: tác hại chỉ còn xảy ra 
 Ít nhất hai nhánh ở hai tầng khác nhau (kỹ thuật, kinh doanh, con người); mỗi lá có bằng chứng (ticket@seed, trường dữ liệu, hoặc một dòng của report).
 
 ```
-[ĐỈNH] Tác hại: ______________________________ (cho ai: __________, đo bằng: __________)
+[ĐỈNH] Hãng/tài xế bị quy lỗi và nhận phạt/thông báo oan (cho: Mekong Delta Ship, tài xế, LogiX; đo bằng: wrongful_carrier_faults; S3 base = 35)
  └─ HOẶC
- ├─ [1] ______________________________ tầng: đầu vào / data / hành động / quyền hạn / vận hành / kinh doanh
- │ └─ vì: ________________________ bằng chứng: ticket ______@seed ____
- ├─ [2] ______________________________ tầng: ______
- │ └─ vì: ________________________ bằng chứng: ticket ______@seed ____
- └─ [3] ______________________________ tầng: ______
- └─ vì: ________________________ bằng chứng: ______
+ ├─ [1] Policy cũ được dùng sau ngày policy mới có hiệu lực  tầng: data / hành động
+ │ └─ vì: index_active vẫn trỏ REFUND-v3 nên FORCE_MAJEURE còn nằm trong fault_causes; bằng chứng: S3-01@11, as_of=2026-12-02, event policy=REFUND-v3
+ ├─ [2] Tracking thiếu cause nhưng agent mặc định thành CARRIER  tầng: data / hành động
+ │ └─ vì: cause_recorded=false và delay_cause=null không chặn lệnh ghi; bằng chứng: S3-20@11, tracking rồi file_carrier_fault
+ └─ [3] Không có người xác nhận rollout policy MÀ thao tác ghi lỗi vẫn bật theo cache cũ  tầng: vận hành + quyền hạn
+   ├─ vì: cờ active cần cập nhật thủ công nhưng thiếu kiểm nhận trước giờ hiệu lực; bằng chứng: policies[].effective_from=2026-12-01, index_active v3, thông điệp S3 card ngày 02-12
+   └─ VÀ `file_carrier_fault` vẫn được phép chạy tự động; bằng chứng: `config/switches.json` đang bật thao tác này
 ```
 
 | Lá | Specification bị vi phạm (phần mềm phải làm gì) | Giả định môi trường đã sai (thế giới ngoài phần mềm) |
 |---|---|---|
-| [1] | | |
-| [2] | | |
-| [3] | | |
+| [1] | Trước khi dùng policy cho bất kỳ hành động nào, chọn phiên bản thỏa `effective_from ≤ as_of` và `effective_to` còn hiệu lực; không dùng cờ cache làm nguồn quyết định. | Người phụ trách không cập nhật/xác nhận chỉ mục policy đúng ngày hoặc rollout bị trễ. |
+| [2] | Chỉ gọi `file_carrier_fault` khi `cause_recorded=true` và `delay_cause` thuộc `fault_causes` của policy hiệu lực; thiếu dữ liệu thì không ghi, chuyển người. | Feed tracking của hãng có thể thiếu nguyên nhân hoặc nhập bù muộn; `null` không có nghĩa là `CARRIER`. |
+| [3] | Mọi lần đổi policy phải được kiểm tra hiệu lực và người chịu trách nhiệm trước khi bật tự động; lệnh ghi lỗi cần phê duyệt khi policy/cause chưa xác nhận. | Không có quy trình rollout/đầu mối xác nhận với hãng trước ngày hiệu lực; tin nhắn S3 nêu phụ lục mới nhưng không ai ở LogiX xác nhận. |
 
 **Ví dụ mẫu một nhánh (bộ nền, đừng chép):** đỉnh "hãng VNX nhận lỗi oan cho đơn O-1002" ← [1] agent dùng độ trễ 5 ngày ←
 model lấy số trong ticket đè lên DB (`T-002@55`). Spec bị vi phạm: độ trễ dùng để ghi lỗi phải lấy từ tracking DB. Giả định
