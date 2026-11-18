@@ -16,7 +16,9 @@
       "Dừng issue_refund tự động ngay nếu phát hiện bất kỳ khoản hoàn sai nào hoặc tổng hoàn tự động trong ngày chạm 2000000 VND; chuyển ca cho NV-HANH.",
       "Tắt file_carrier_fault tự động nếu có bất kỳ lỗi ghi oan nào hoặc tracking không có delay_cause được ghi nhận là lỗi hãng.",
       "Tắt notify_carrier ngay nếu phát hiện PII trong payload gửi ra ngoài LogiX.",
-      "Dừng nhận ca tự động và gọi người trực bổ sung nếu hàng chờ vượt công suất hoặc thời gian chờ lâu nhất vượt 60 phút."
+      "Dừng nhận ca tự động và gọi người trực bổ sung nếu hàng chờ vượt công suất hoặc thời gian chờ lâu nhất vượt 60 phút.",
+      "Khi monitor policy_drift_rate > 0 (cờ index_active khác chính sách hiệu lực theo ngày): NV-TUNG cập nhật chỉ mục chính sách trong ca và xác nhận phụ lục với các hãng; trong lúc chờ, file_carrier_fault tự động chỉ chạy theo chính sách hiệu lực theo ngày.",
+      "Từ lỗi hãng thứ 3 của cùng một hãng trong ngày (max_strikes_per_carrier_day > 2): không ghi tự động; NV-HANH duyệt từng lỗi trước khi thông báo hãng."
     ],
     "alert_channel": "Teams #logix-pilot-ops (đề xuất; xác nhận kênh thật trước pilot)",
     "decision_note": true,

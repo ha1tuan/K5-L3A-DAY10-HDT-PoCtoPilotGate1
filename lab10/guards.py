@@ -71,12 +71,23 @@ def _gate_carrier_fault(ctx, action):
     parcel = next((x for x in order["parcels"] if x["parcel_id"] == action["parcel_id"]), None) if order else None
     if policy is None or parcel is None:
         return Verdict.deny("không tra được kiện hoặc chính sách để xác nhận lỗi hãng")
+    if parcel.get("delay_cause") is None:
+        # Vòng 2 (S3): tracking chưa ghi nguyên nhân. "Chưa biết" không có nghĩa là "lỗi hãng".
+        ctx.log("carrier_fault_no_recorded_cause", parcel_id=parcel["parcel_id"])
+        return Verdict.deny("tracking chưa ghi nhận nguyên nhân trễ: không ghi lỗi hãng, chờ người xác minh")
     db_delay = H.db_delay_days(parcel, ctx.as_of)
     if not H.carrier_at_fault(policy, parcel, db_delay):
         ctx.log("carrier_fault_denied", parcel_id=parcel["parcel_id"], db_delay=db_delay,
                 cause=parcel.get("delay_cause"))
         return Verdict.deny(f"tracking DB: trễ {db_delay} ngày, nguyên nhân {parcel.get('delay_cause')}; "
                             f"chính sách {policy['policy_id']} không cho ghi lỗi hãng")
+    # Vòng 2 (S3): trần đã thống nhất với Ops: từ lỗi thứ 3 của cùng một hãng trong ngày phải có người duyệt.
+    cap = ctx.tools.ops_limits().get("max_auto_strikes_per_carrier_per_day")
+    today = len(ctx.tools.fault_rows(carrier_id=action["carrier_id"]))
+    if cap is not None and today >= cap:
+        ctx.log("carrier_strike_cap", carrier_id=action["carrier_id"], today=today, cap=cap)
+        return Verdict.deny(f"hãng {action['carrier_id']} đã có {today} lỗi tự động hôm nay (trần {cap}): "
+                            f"không ghi tự động, chờ {ctx.gates.get('operations', {}).get('approver_id') or 'người'} duyệt")
     if action.get("delay_days") != db_delay:
         return Verdict.modify("sửa delay_days theo tracking DB", delay_days=db_delay)
     return None
@@ -93,7 +104,18 @@ def _gate_carrier_payload(ctx, action):
 
 
 def pre_guard(ctx):
-    return Verdict.allow()
+    """Cổng 4 (vòng 2, S3): ghim chính sách theo ngày hiệu lực, không theo cờ bản sao `index_active`.
+
+    Nguồn sự thật về "phiên bản đang hiệu lực" là `effective_from`/`effective_to` so với ngày hôm nay (ctx.as_of).
+    `index_active` là cờ do người bật tay, có thể chậm sau ngày chính sách mới có hiệu lực (concept drift)."""
+    policies = ctx.tools.lookup_policies()
+    eff = H.effective_policy(policies, ctx.as_of)
+    if eff is None:
+        return Verdict.escalate(f"không có chính sách nào hiệu lực vào {ctx.as_of}: chuyển người xử lý")
+    flagged = next((p["policy_id"] for p in policies if p.get("index_active")), None)
+    if flagged != eff["policy_id"]:
+        ctx.log("policy_drift", index_active=flagged, effective=eff["policy_id"], as_of=ctx.as_of)
+    return Verdict.allow(policy_id=eff["policy_id"])
 
 
 def write_gate(ctx, action):
