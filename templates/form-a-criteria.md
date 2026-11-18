@@ -20,14 +20,18 @@ rồi mới chạy đánh giá. Khối 1 không sửa code.
 
 ### Câu 1.1 · Một mục tiêu cấp hệ thống (khác "model trả lời đúng")
 
-> …
+> Trợ lý giúp LogiX-VN giải quyết claim hoàn phí ship/bồi thường hàng hỏng trong phạm vi pilot với chi phí mỗi ticket thấp hơn làm tay và không phát sinh đồng tiền hoàn sai nào, trong khi tổng tiền hoàn tự động mỗi ngày luôn nằm dưới trần đã đặt.
 
 ### Câu 1.2 · Mục tiêu nhìn từ hai người
 
 - Chị Oanh, kế toán đối soát (không dùng trợ lý, nhưng phải khớp sổ với hãng và shop mỗi tuần): …
+
+Mục tiêu: Mỗi dòng tiền trợ lý tạo ra phải đối soát được một chiều, không cần hỏi lại CSKH — tức mỗi dòng sổ cái gắn đúng một claim/một đơn, có ID phê duyệt hợp lệ, có clause đang còn hiệu lực, và số tiền trong sổ trùng với số tiền đã nói với khách; cuối tuần số dòng phải điều chỉnh tay bằng 0.
+
 - Chị Hạnh, trưởng ca CSKH (phải duyệt những ca trợ lý chuyển sang): …
 
----
+Mục tiêu: Hàng chờ phê duyệt phải vừa với công suất một ca thật — số ca chuyển sang mỗi giờ không vượt công suất duyệt của số người đang trực, thời gian chờ của khách không vượt ngưỡng đã đặt, số ca bị ùn cuối ca bằng 0; và mỗi ca chuyển sang phải đủ hồ sơ để duyệt được trong vài phút: độ trễ lấy từ DB (không lấy theo lời khách), clause áp dụng, số tiền đề xuất, lý do escalate.
+
 
 <a id="a2"></a>
 
