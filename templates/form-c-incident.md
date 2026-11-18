@@ -348,23 +348,23 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 
 <a id="c9"></a>
 
-## C9 · Câu 3.7 · Fault tree SAU khi sửa (mã lần chạy: `__________`)
+## C9 · Câu 3.7 · Fault tree SAU khi sửa (mã lần chạy: `R-S3-after-20261118-173716-897426`)
 
 Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [gate … hỏng]` và ghi:
 
 ```
-[ĐỈNH] ______________________________
+[ĐỈNH] Hãng/tài xế bị quy lỗi và nhận phạt/thông báo oan (mục tiêu: wrongful_carrier_faults = 0)
  └─ HOẶC
- ├─ [1] ______________ VÀ [gate ______ hỏng]
- ├─ [2] ______________ VÀ [gate ______ hỏng]
- └─ [3] ______________ (còn hở?)
+ ├─ [1] Chọn sai policy theo `index_active` VÀ [pre_guard không chọn theo ngày hiệu lực / policy_drift_rate không cảnh báo]
+ ├─ [2] Nguyên nhân trễ chưa được ghi nhận nhưng vẫn quy hãng VÀ [_gate_carrier_fault bỏ qua `delay_cause=null` / legal gate bị tắt]
+ └─ [3] Hãng nhận dồn lỗi tự động trong ngày (còn hở: hai lỗi đầu vẫn có thể được ghi trước khi chạm trần 2)
 ```
 
 | Nhánh | Gate (hàm trong `guards.py` / khoá config / metric trong `monitors.py`) | Tầng gate (phát hiện / chặn / giới hạn thiệt hại / vận hành) | Giảm hay ngăn? Vì sao | Nhánh còn hở |
 |---|---|---|---|---|
-| [1] | | | | |
-| [2] | | | | |
-| [3] | | | | |
+| [1] | `pre_guard` ghim `H.effective_policy` theo `ctx.as_of`; `policy_drift_rate` phát hiện cờ cache lệch | Chặn + phát hiện | Ngăn việc dùng cờ `index_active` sai trong phiên xử lý; chỉ giảm nếu chính ngày hiệu lực trong dữ liệu bị nhập sai. Monitor đang 1,0 nên PIC phải cập nhật chỉ mục | `effective_from/effective_to` sai đồng thời hoặc monitor không được xử lý; hiện `policy_drift_rate=1.0` |
+| [2] | `_gate_carrier_fault` từ chối khi `delay_cause` trống; `legal.carrier_fault_requires_recorded_cause=true` | Chặn | Ngăn ghi lỗi khi tracking chưa ghi nguyên nhân; không xác minh được nguyên nhân đã ghi có đúng sự thật không | Nguyên nhân nhập sai hoặc nguồn tracking sai; `fault_attempt_without_cause_rate=0.2222` cho thấy ý định sai vẫn phát sinh nhưng đã bị gate chặn |
+| [3] | `_gate_carrier_fault` + `max_auto_strikes_per_carrier_per_day` trần 2; `operations.stop_conditions` yêu cầu NV-HANH duyệt từ lỗi thứ 3 | Giới hạn thiệt hại + vận hành | Giới hạn lỗi tự động tối đa 2/hãng/ngày; không ngăn hai lỗi đầu sai nếu nhánh [1]/[2] hỏng | Hai lỗi đầu trước khi chạm trần; monitor after là 2. Cần tiếp tục đối soát phản hồi hãng |
 
 ---
 
@@ -374,7 +374,7 @@ Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [g
 
 | Rủi ro | Khả năng | Tác động | Người phụ trách (PIC, một người) | Dấu hiệu (metric nào, ngưỡng nào) | Xử lý | Ảnh hưởng bước đánh giá | Nhóm chức năng (GOVERN / MAP / MEASURE / MANAGE) |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| Chỉ mục policy có thể tiếp tục lệch dù guard đã ghim policy hiệu lực; `policy_drift_rate=1.0` trong S3 after | Cao (đã quan sát 60/60 trial có drift) | Trung bình: guard hiện ngăn lỗi theo ngày, nhưng cấu hình cũ có thể gây nhầm khi vận hành hoặc khi guard lỗi | Vũ Hải Tuấn (NV-TUNG/PIC vận hành) | `policy_drift_rate > 0` theo ngày | Trong ca cập nhật `index_active` sang REFUND-v4, xác nhận phụ lục với hãng; ghi hoàn tất. Nếu chưa xác nhận, tạm dừng `file_carrier_fault` tự động | Đổi quyết định tiếp tục pilot lỗi hãng tự động sang chỉ tiếp tục sau khi cập nhật/đối soát policy; nếu drift còn thì dừng lệnh ghi lỗi hãng | MANAGE |
 
 Quy tắc: **mỗi dòng phải đổi được một quyết định.** Cột "Dấu hiệu" phải là một metric có trong `monitors.py` hoặc trong report.
 
@@ -390,26 +390,29 @@ Ghi các dòng đổi sau sự cố. Mỗi dòng vẫn phải có một PIC có 
 
 | # nhóm | Trạng thái mới (Xong / Chưa / Không áp dụng) | Bằng chứng mới (mã lần chạy, mục phiếu, số trong report) | PIC |
 |---|---|---|---|
-| | | | |
-| | | | |
+| 1 Chất lượng | Xong (trên suite S3) | `R-S3-after-20261118-173716-897426`: 60 trial, pass_rate 1,0; hoàn sai 0đ, lỗi hãng oan 0, PII 0. Chỉ xác nhận suite S3, chưa thay cho grade đủ base/prepared/after | Nguyễn Thị Thu Hà |
+| 2 Dữ liệu | Xong (đã bổ sung kiểm soát) | Phiếu C C3.5; `guards.py` `pre_guard` so ngày hiệu lực; `policy_drift_rate=1.0` vẫn yêu cầu cập nhật cờ cache | Vũ Hải Tuấn |
+| 4 Quyền hạn | Xong (cổng lỗi hãng) | `R-S3-after-20261118-173716-897426`: không có lỗi hãng oan; thiếu nguyên nhân bị deny; trần tự động 2 lỗi/hãng/ngày | Nguyễn Thị Thu Hà |
+| 7 Vận hành | Xong (cấu hình; cần thực thi cảnh báo) | `config/operating_gates.json`: PIC NV-TUNG, approver NV-HANH, 1 reviewer × 6 ca/giờ, SLA 60 phút; policy drift 1,0 cần xử lý trong ca | Phan Văn Diện |
+| 9 Quyết định | Chưa | Chưa có checkpoint prepared hợp lệ cho S3 và chưa chốt quyết định Gate 1 v2; không suy diễn từ eval after đơn lẻ | Vũ Hải Tuấn |
 
 ### Runbook 4 · Sau sự cố trên thẻ (vòng 2)
 
 | Câu hỏi | Trả lời |
 |---|---|
-| Tín hiệu nào ở Runbook 2 (Phiếu B mục B7.5) lẽ ra phải báo trước sự cố này? Nó đã có chưa? | |
-| Bàn thêm hoặc đổi ngưỡng nào, từ bao nhiêu thành bao nhiêu? | |
-| Bàn đổi gì về **người** (số người trực, ai đứng tên, ai được gọi)? | |
-| Bàn đổi gì về **phạm vi** hoặc **quy trình** (kiểm mẫu, ghi chú giải thích, trần)? | |
-| Nói gì với bên thứ ba bị ảnh hưởng (hãng, shop, người nhận, nhân viên duyệt), ai nói, trong bao lâu? | |
-| Dữ liệu cá nhân nào đã rời hệ thống mà không thu hồi được? Báo cho ai? | |
-| Sự cố lộ ra trước qua số máy đo, phản hồi của người, hay đọc nội dung? Nguồn nào bàn chưa có? | |
+| Tín hiệu nào ở Runbook 2 (Phiếu B mục B7.5) lẽ ra phải báo trước sự cố này? Nó đã có chưa? | `policy_drift_rate > 0` và `fault_attempt_without_cause_rate > 0,1`; đã có trong monitors và stop_conditions, nhưng drift đang 1,0 nên NV-TUNG phải xác nhận xử lý thay vì chỉ dựa vào guard. |
+| Bàn thêm hoặc đổi ngưỡng nào, từ bao nhiêu thành bao nhiêu? | Giữ trần lỗi hãng tự động 2/hãng/ngày; từ lỗi thứ 3 NV-HANH duyệt. Bất kỳ `policy_drift_rate > 0` đều cần xử lý trong ca. |
+| Bàn đổi gì về **người** (số người trực, ai đứng tên, ai được gọi)? | Giữ 1 reviewer, năng lực 6 ca/giờ, SLA 60 phút; NV-TUNG xử lý drift và xác nhận phụ lục, NV-HANH duyệt ngoại lệ/lỗi hãng từ lần thứ 3. |
+| Bàn đổi gì về **phạm vi** hoặc **quy trình** (kiểm mẫu, ghi chú giải thích, trần)? | Chưa mở rộng phạm vi; giữ kiểm mẫu 10%, bắt buộc decision note; tiếp tục chỉ gửi payload tối thiểu cho hãng. Chỉ mở rộng sau khi đối soát index và chạy lại grade đủ mốc. |
+| Nói gì với bên thứ ba bị ảnh hưởng (hãng, shop, người nhận, nhân viên duyệt), ai nói, trong bao lâu? | NV-OANH đối soát các lỗi đã ghi với hãng trong 1 ngày làm việc; nếu phát hiện lỗi oan thì xin lỗi, nêu mã kiện/kết quả điều chỉnh và xử lý theo quy trình. NV-HANH thông báo nội bộ cho người duyệt trong ca. |
+| Dữ liệu cá nhân nào đã rời hệ thống mà không thu hồi được? Báo cho ai? | Report after ghi `pii_leaks=0`; chưa có bằng chứng PII rời hệ thống lần này. Nếu phát hiện từ log/đối tác, NV-TUNG báo đầu mối pháp lý và dừng `notify_carrier`; không khẳng định có sự cố lộ dữ liệu. |
+| Sự cố lộ ra trước qua số máy đo, phản hồi của người, hay đọc nội dung? Nguồn nào bàn chưa có? | Dữ liệu/thẻ và monitor phát hiện drift/ý định quy lỗi; chưa có metric về nguyên nhân sai nhưng đã ghi, cũng chưa có luồng phản hồi/kháng nghị của hãng đã xác minh. Bổ sung đối soát phản hồi hãng theo tuần. |
 
 ### Runbook 5 · Ba kịch bản "nếu … thì …" cho tuần đầu chạy thử thật
 
-1. Nếu số ticket tăng gấp ___ lần trong một giờ thì: …
-2. Nếu nhà cung cấp LLM lỗi quá ___ phút thì: …
-3. Nếu người duyệt báo không tin một quyết định của trợ lý thì: …
+1. Nếu số ticket tăng gấp **2 lần** trong một giờ thì: PIC NV-TUNG tạm dừng nhận tự động ở phạm vi tăng đột biến, gọi thêm reviewer; chỉ mở lại khi hàng chờ dưới SLA 60 phút và năng lực được xác nhận.
+2. Nếu nhà cung cấp LLM lỗi quá **5 phút** thì: tắt `issue_refund` và `file_carrier_fault` tự động, chuyển ticket sang hàng chờ/manual; NV-TUNG ghi nhận sự cố và chỉ bật lại sau một lượt kiểm tra.
+3. Nếu người duyệt báo không tin một quyết định của trợ lý thì: NV-HANH giữ quyền quyết định, tạm dừng đúng loại lệnh bị nghi ngờ, kiểm tra trace và nguồn dữ liệu; ghi decision note, lấy mẫu 10 ticket kế tiếp trước khi khôi phục.
 
 ---
 
