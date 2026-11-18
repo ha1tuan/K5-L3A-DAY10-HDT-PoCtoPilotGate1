@@ -316,7 +316,7 @@ Mỗi con số kèm một câu lý do, lấy từ `data/world.json` → `ops_lim
 
 | Khoá | Giá trị bàn đặt | Lý do (một câu, có số) |
 |---|---|---|
-| `business.daily_refund_cap_vnd` | | |
+| `business.daily_refund_cap_vnd` | **2.000.000đ/ngày** | Bằng trần ngân sách hoàn tự động/ngày do Finance đặt trong `data/world.json` → `ops_limits`; runbook cảnh báo vàng ở 80% và dừng ghi tự động khi chạm trần. |
 | `business.cost_budget_per_ticket_vnd` | | |
 | `business.pilot_scope` (all / warehouse / percent) | | |
 | `business.roi_min` | | |
@@ -348,13 +348,13 @@ Mỗi dòng một tín hiệu. Cột "Lấy ở đâu" phải là một dòng tr
 
 | Tín hiệu | Lấy ở đâu | Bình thường | Ngưỡng VÀNG → việc làm | Ngưỡng ĐỎ → việc làm | Ai quyết |
 |---|---|---|---|---|---|
-| Thời gian chờ người duyệt lâu nhất | Report `lab10.eval`: `queue.wait_max_min` | ≤30 phút | >30 đến 60 phút: NV-TUNG kiểm hàng chờ và gọi người hỗ trợ nếu lượng đến tăng | >60 phút: dừng nhận ca tự động, chuyển xử lý tay và gọi thêm người; hoàn tất dừng trong 5 phút | NV-TUNG |
-| Số ca bị ùn | Report `lab10.eval`: `queue.stuck` | 0 ca | Có 1 ca: kiểm tra năng lực và phân công lại ngay | Có ≥1 ca hoặc hết ca chưa được nhận: thu hẹp pilot/tắt thao tác ghi gây ùn | NV-TUNG |
-| Chi phí mỗi ticket so với làm tay | Report `lab10.eval`: `cost.cost_per_ticket_vnd` và `cost.manual_cost_per_ticket_vnd` | ≤10.000đ/ticket (mốc làm tay trong `ops_facts`) | Tiến sát 10.000đ: xem cost driver và dừng mở rộng | >10.000đ/ticket sau khi tính cả trực duyệt: thu hẹp pilot theo kho/loại ticket; NV-TUẤN chốt phạm vi | Vũ Hải Tuấn |
-| Tổng tiền hoàn tự động trong ngày so với trần | Report `lab10.eval`: `refund.auto_refund_day_max_vnd`; theo dõi ledger trong ca | <1.600.000đ (80% trần ngày) | ≥1.600.000đ: cảnh báo Finance, yêu cầu NV-TUNG theo dõi từng khoản | Chạm 2.000.000đ: dừng `issue_refund` tự động, chuyển NV-HANH duyệt | Lê Thanh Tùng |
-| Tiền hoàn sai | Report `lab10.eval`: `refund.wrongful_refund_worst_day_vnd` | 0đ | Không có ngưỡng vàng: bất kỳ khoản nào cũng báo đỏ | >0đ: dừng `issue_refund`, đối soát ledger và chuyển toàn bộ ca mới sang người | Lê Thanh Tùng |
-| Lỗi ghi oan cho hãng / lộ dữ liệu cá nhân (pháp lý) | Report `lab10.eval`: wrongful carrier faults/PII leaks; đối chiếu outbound payload | 0 lỗi oan, 0 PII | Không có ngưỡng vàng; nghi ngờ có PII thì tạm dừng gửi hãng để kiểm tra payload | Bất kỳ lỗi oan hoặc PII gửi ra ngoài: tắt `file_carrier_fault`/`notify_carrier` tương ứng ngay | Lê Thanh Tùng; Phạm Kiều Oanh tiếp nhận khiếu nại |
-| Tỷ lệ chuyển người duyệt | Report `lab10.eval`: `queue.escalation_rate` và số ca đến theo giờ | ≤35%, đồng thời ≤6 ca/giờ | >35% hoặc hàng chờ đạt 5 ca: gọi reviewer dự phòng, rà lý do chuyển | >6 ca/giờ kéo dài hoặc thời gian chờ >60 phút: thu hẹp phạm vi/tắt tự động đến khi đủ người | Trần Thị Hạnh |
+| Thời gian chờ người duyệt lâu nhất | Report `lab10.eval`: `operations.queue.wait_max_min` | ≤30 phút | >30 đến 60 phút: NV-TUNG kiểm hàng chờ và gọi người hỗ trợ nếu lượng đến tăng | >60 phút: dừng nhận ca tự động, chuyển xử lý tay và gọi thêm người; hoàn tất dừng trong 5 phút | NV-TUNG |
+| Số ca bị ùn | Report `lab10.eval`: `operations.queue.stuck` | 0 ca | Có 1 ca: kiểm tra năng lực và phân công lại ngay | Có ≥1 ca hoặc hết ca chưa được nhận: thu hẹp pilot/tắt thao tác ghi gây ùn | NV-TUNG |
+| Chi phí mỗi ticket so với làm tay | Report `lab10.eval`: `ops.cost.cost_per_ticket_vnd`, `ops.cost.manual_cost_per_ticket_vnd` | ≤10.000đ/ticket (mốc làm tay trong `ops_facts`) | Tiến sát 10.000đ: xem cost driver và dừng mở rộng | >10.000đ/ticket sau khi tính cả trực duyệt: thu hẹp pilot theo kho/loại ticket; Vũ Hải Tuấn chốt phạm vi | Vũ Hải Tuấn |
+| Tổng tiền hoàn tự động trong ngày so với trần | Report `lab10.eval`: `ops.refund.auto_refund_day_max_vnd`; theo dõi ledger trong ca | <1.600.000đ (80% trần ngày) | ≥1.600.000đ: cảnh báo Finance, yêu cầu NV-TUNG theo dõi từng khoản | Chạm 2.000.000đ: dừng `issue_refund` tự động, chuyển NV-HANH duyệt | Lê Thanh Tùng |
+| Tiền hoàn sai | Report `lab10.eval`: `ops.cost.wrongful_refund_per_day_vnd` và `ops.refund.wrongful_refund_worst_day_vnd` | 0đ | Không có ngưỡng vàng: bất kỳ khoản nào cũng báo đỏ | >0đ: dừng `issue_refund`, đối soát ledger và chuyển toàn bộ ca mới sang người | Lê Thanh Tùng |
+| Lỗi ghi oan cho hãng / lộ dữ liệu cá nhân (pháp lý) | Report `lab10.eval`: `wrongful_carrier_faults`, `pii_leaks`; đối chiếu trace/outbound payload | 0 lỗi oan, 0 PII | Không có ngưỡng vàng; nghi ngờ có PII thì tạm dừng gửi hãng để kiểm tra payload | Bất kỳ lỗi oan hoặc PII gửi ra ngoài: tắt `file_carrier_fault`/`notify_carrier` tương ứng ngay | Lê Thanh Tùng; Phạm Kiều Oanh tiếp nhận khiếu nại |
+| Tỷ lệ chuyển người duyệt | Report `lab10.eval`: `ops.review_rate` và `ops.queue.queued_per_day` | ≤35%, đồng thời ≤6 ca/giờ | >35% hoặc hàng chờ đạt 5 ca: gọi reviewer dự phòng, rà lý do chuyển | >6 ca/giờ kéo dài hoặc thời gian chờ >60 phút: thu hẹp phạm vi/tắt tự động đến khi đủ người | Trần Thị Hạnh |
 
 #### Runbook 3 · Điều kiện dừng và cách dừng
 
