@@ -1,6 +1,6 @@
 # Phiếu C · Sự cố và quyết định v2 · Khối 3 (phút 125–200)
 
-**Bàn:** ______ · **Thẻ đã bốc:** ___ *(để trống tới phút 125; bốc số xong thì ghi đúng số đó, ví dụ `S3`. Lab Coach đối chiếu với sổ; lệnh tự kiểm tra in dòng này trong report.)*
+**Bàn:** K5-L3A-DAY10-HDT · **Thẻ đã bốc:** S3 *(Lab Coach đối chiếu với sổ; lệnh tự kiểm tra in dòng này trong report.)*
 
 Mở `incidents/Sx/card.md` của đúng số đã bốc. Các bước trên thẻ trỏ về đúng mục trong phiếu này. Mục C3 chỉ điền phần ứng với
 số thẻ của bàn; các phần khác để trống.
@@ -30,7 +30,7 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 
 | # | Mã lần chạy | Bộ ticket · mốc | Đổi MỘT thứ gì so với lần trước | pass_rate (khoảng tin cậy 95%) | pass_k | Hoàn sai (đ) · lỗi hãng oan · lộ dữ liệu | Tỉ lệ chuyển người | Kết luận (một câu) |
 |---|---|---|---|---|---|---|---|---|
-| 1 | | Sx · prepared | nhận thẻ đã bốc, chưa sửa thêm (đúng cổng vòng 1 đã chốt) | | | | | |
+| 1 | `R-S3-grade-20261118-171432-c94b28` (grade; prepared không chạy được) | S3 · prepared (thiếu snapshot) | Nhận thẻ S3, chưa sửa thêm; grade chỉ tạo mốc base và after vì chưa có checkpoint vòng 1 | — | — | — | — | Chưa có số prepared; cần checkpoint hợp lệ rồi chạy grade lại |
 | 2 | | Sx · after | | | | | | |
 | 3 | | Sx · after | | | | | | |
 | 4 | | base · after | (kiểm không regression) | | | | | |
@@ -47,19 +47,19 @@ Chạy **trước khi sửa bất cứ thứ gì**:
 python3 -m lab10.grade --incident Sx
 ```
 
-- Mã lần chạy grade: `__________` · base: `__________` · prepared: `__________`
-- Cổng vòng 1 đỡ được ô / con số nào (so cột base với cột prepared): …
-- Khối kinh doanh và vận hành còn dòng nào vượt trần: …
+- Mã lần chạy grade: `R-S3-grade-20261118-171432-c94b28` · base: `R-S3-before-20261118-171432-c94b28` · prepared: **chưa có** (thiếu `config/round1.lock`, `lab10/guards_round1.py`, `config/operating_gates.round1.json`).
+- Cổng vòng 1 đỡ được ô / con số nào (so cột base với cột prepared): **Chưa kết luận được** vì report không có mốc prepared; không lấy mốc after thay cho prepared.
+- Khối kinh doanh và vận hành còn dòng nào vượt trần: **Chưa xác định theo prepared**. Grade hiện tại chỉ có base/after; cần chạy lại sau khi khôi phục/chốt đúng snapshot vòng 1.
 
 **Mở lại pre-mortem (Phiếu B mục B6), viết bằng bút khác màu.** Với thẻ S1, S3, S4, S5 đây là một phần của phần riêng theo thẻ.
 
-- Sự cố trên thẻ thuộc lăng kính nào (kỹ thuật, kinh doanh, con người và vận hành, pháp lý)? …
-- Có nằm trong các lý do bàn đã viết không? Nếu có: cổng vòng 1 đã đỡ được bao nhiêu (đọc cột prepared trong report)? Nếu không: vì sao cả bàn không nghĩ tới? …
+- Sự cố trên thẻ thuộc lăng kính nào (kỹ thuật, kinh doanh, con người và vận hành, pháp lý)? **Kỹ thuật/dữ liệu** (agent có thể dùng cờ `policies[].index_active` đã cũ thay vì phiên bản theo `effective_from`); **kinh doanh** (hãng bị phạt 120.000đ mỗi lỗi theo thẻ); **pháp lý/đối tác** (ghi lỗi hãng khi nguyên nhân là bão hoặc chưa được tracking ghi nhận).
+- Có nằm trong các lý do bàn đã viết không? Nếu có: cổng vòng 1 đã đỡ được bao nhiêu (đọc cột prepared trong report)? Nếu không: vì sao cả bàn không nghĩ tới? **Phiếu B mục B3 đã nhận diện `index_active` là bản sao có thể lệch ngày hiệu lực, nhưng pre-mortem B6 chưa chuyển drift chính sách thành một lý do thất bại/cổng riêng. Chưa định lượng được cổng vòng 1 đã đỡ bao nhiêu vì không có mốc prepared.**
 - Lý do còn thiếu, thêm bây giờ:
 
 | Lý do thất bại (viết ở thì quá khứ) | Lăng kính | Kiểm được bằng gì (trace / data / config nào) |
 |---|---|---|
-| | | |
+| Chính sách REFUND-v4 đã có hiệu lực từ 01-12-2026 nhưng chỉ mục `index_active`/lựa chọn phiên bản chưa cập nhật; một số parcel còn thiếu `delay_cause`, khiến kết luận về lỗi hãng không đủ căn cứ. | Kỹ thuật/dữ liệu; pháp lý/đối tác | `incidents/S3/card.md`, `incidents/S3/world_patch.json`; so `policies[].effective_from` với `index_active`, kiểm `tracking.cause_recorded` trên S3 trace sau khi có mốc prepared |
 
 ---
 
