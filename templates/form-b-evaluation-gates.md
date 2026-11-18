@@ -284,7 +284,7 @@ python3 -m unittest discover -s tests
 Dòng B4, B6 chưa có cổng code ở vòng 1 (để nhóm quyết định):
 - B4 `policy_id` · INVALID, và drift 01/12 ở B3: ghim chính sách theo `effective_from`/`effective_to` trong `pre_guard` (`Verdict.allow(policy_id=...)`). Chưa làm.
 - B4 `approval_id` · INCOMPLETE: kiểm approval khớp đơn, khách và số tiền. Chưa làm; `lab10/agent.py` lấy approval theo khách khi không có theo đơn.
-- B4 tổng hoàn trong ngày, B6 hàng cuối, điều kiện dừng số 3 (2.000.000đ): do `business.daily_refund_cap_vnd` trong `config/operating_gates.json` (câu 2.9); `lab10/tools.py` đã thi hành khi cấu hình có số, hiện còn `null`.
+- B4 tổng hoàn trong ngày, B6 hàng cuối, điều kiện dừng số 3 (2.000.000đ): do `business.daily_refund_cap_vnd` trong `config/operating_gates.json` (câu 2.9); `lab10/tools.py` đã thi hành khi cấu hình có số; đã đặt 2.000.000đ ở B7.4.
 - B4 tracking lỗi hoặc thiếu · INCAPABLE: fail closed. Chưa làm.
 
 ### B7.2 · Câu 2.7 · Hai bước tránh rò rỉ dữ liệu
@@ -316,10 +316,12 @@ Mỗi con số kèm một câu lý do, lấy từ `data/world.json` → `ops_lim
 
 | Khoá | Giá trị bàn đặt | Lý do (một câu, có số) |
 |---|---|---|
-| `business.daily_refund_cap_vnd` | | |
-| `business.cost_budget_per_ticket_vnd` | | |
-| `business.pilot_scope` (all / warehouse / percent) | | |
-| `business.roi_min` | | |
+| `business.daily_refund_cap_vnd` | `2000000` | Bằng ngân sách hoàn tự động cả ngày Finance đã thống nhất (`ops_limits.daily_auto_refund_budget_vnd` = 2.000.000đ) và khớp điều kiện dừng số 3 đã ký: khoản nào làm tổng hoàn tự động vượt 2.000.000đ thì `lab10/tools.py` không ghi mà chuyển người duyệt, nên điều kiện dừng này không bao giờ bị chạm; lần chạy `R-base-after-20261118-165303-e754ad` ngày cao nhất mới hoàn 155.000đ (7,75% trần). |
+| `business.cost_budget_per_ticket_vnd` | `1500` | Bằng trần tiền LLM mỗi ticket Ops và Finance đã chốt (`ops_limits.max_llm_cost_per_ticket_vnd` = 1.500đ); ticket tốn nhiều nhất hiện là 670đ nên không ca đúng nào bị chặn, còn ticket bất thường (chữ dài, bị nhồi lệnh) sẽ dừng đọc và chuyển người thay vì đốt tiền. |
+| `business.pilot_scope` (all / warehouse / percent) | `all` (`warehouses: []`, `percent: 100`) | Mọi kho đều rẻ hơn làm tay 10.000đ/ticket (`ops_facts.manual_cost_per_ticket_vnd`): CT 590đ, HN 1.993đ, HCM 2.967đ, DN 4.586đ, trung bình 4.293đ ≤ 6.500đ đã ký, và hàng chờ 5,2 ca/ngày nằm gọn trong 6 ca/giờ của 1 người duyệt (`ops_facts.review_capacity_per_reviewer_per_hour`), nên chưa có lý do thu hẹp; nhóm ticket không gắn đơn (`?`, 10.359đ) đã đi người duyệt sẵn. Theo dõi: kho `HCM-B2B` (đơn từ 2 triệu) chưa có ticket trong bộ nền; nếu gói sự cố cho thấy kho này đắt hơn làm tay hoặc hoàn lớn thì chuyển sang `warehouse` với `["HN", "HCM", "DN", "CT"]`. |
+| `business.roi_min` | `0.5` | Khớp `business_ops.roi_min` = 0,5 trong Bản tiêu chí đã ký: mỗi 1đ chi (LLM + duyệt 10.000đ/ca theo `ops_facts.review_cost_per_ticket_vnd` + phí giữ chỗ 30.000đ/người/ca theo `ops_facts.reviewer_standby_fee_vnd`) phải tiết kiệm ròng ít nhất 0,5đ so với làm tay; hiện ROI 1,33 (tiết kiệm ròng 125.562đ/ngày), nên còn dư để thêm người trực hoặc bật `decision_note` mà chưa chạm ngưỡng. |
+
+Kiểm: `python3 -m lab10.eval --suite base --stage after` → `R-base-after-20261118-165303-e754ad`: pass_rate 1.0, "vượt trần: không", `unittest` 13/13 OK.
 
 ### B7.5 · Câu 2.10 · Cổng con người, vận hành, pháp lý + Runbook phần 1–3
 
