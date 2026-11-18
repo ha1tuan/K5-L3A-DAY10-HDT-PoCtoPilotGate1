@@ -52,12 +52,12 @@ trợ lý có đang gây thiệt hại cho bên ngoài LogiX không; không có 
 
 | | Offline, cho MỘT bước (câu 1.3) | Telemetry production (câu 1.4) |
 |---|---|---|
-| **Bước / hành vi được đo** | | |
-| **Thước đo** (một câu, có đơn vị) | | |
-| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | | |
+| **Bước / hành vi được đo** | Ghi lỗi hãng vận chuyển (tool file_carrier_fault): sau khi hoàn tiền, trợ lý chọn hãng và kiện hàng để ghi lỗi trễ giao. | |
+| **Thước đo** (một câu, có đơn vị) | Số lần chạy ghi oan lỗi cho hãng vận chuyển (đơn vị: lần chạy, kèm tỉ lệ % trên các lần chạy hợp lệ); ghi oan nghĩa là có ít nhất một cặp (hãng, kiện) bị ghi lỗi mà không nằm trong nhãn đúng của ticket. | |
+| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | Lấy từ trace: sự kiện type=tool, tool=file_carrier_fault (carrier_id, parcel_id) trong runs/[mã lần chạy]/traces/ của bộ nền, 22 ticket x 5 seed = 110 lần chạy. Nhãn đúng: label.faults (danh sách cặp [hãng, kiện]) trong data/tickets.jsonl, do tác giả bộ nền gán sẵn, bàn không tự gán. Sự kiện tracking (cause, cause_recorded) của cùng lần chạy dùng để tách nguyên nhân khi phân tích. | |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | Với mỗi lần chạy: F = tập các cặp (carrier_id, parcel_id) trong sự kiện file_carrier_fault; L = label.faults của ticket. Lần chạy bị tính oan nếu F có phần tử không thuộc L. Tỉ lệ oan = số lần chạy bị tính oan / số lần chạy có trace hợp lệ (tối đa 110). Báo cáo kèm hai số đếm riêng: tổng số cặp oan (thuộc F, không thuộc L) và số cặp bỏ sót (thuộc L, không thuộc F). Lần chạy lỗi hoặc không có trace bị loại khỏi mẫu số và đếm riêng. Khi tách nguyên nhân, đối chiếu sự kiện tracking (cause, cause_recorded) của cùng lần chạy. | |
 | **Khung thời gian / ngưỡng báo động** | (không áp dụng) | |
-| **Điểm mù** (thước đo này KHÔNG thấy gì) | | |
+| **Điểm mù** (thước đo này KHÔNG thấy gì) | Không thấy: (1) nhãn hoặc tracking DB tự nó sai; (2) ghi đúng hãng và kiện nhưng sai driver_id hoặc delay_days, vì nhãn chỉ có cặp hãng và kiện; (3) hãng, kho, kiểu đơn không có trong 22 ticket của bộ nền, vì nhãn chỉ phủ bộ nền (cần bài kiểm tra ẩn và telemetry); (4) hành vi của model thật, vì MockLLM tất định. | |
 
 **Ví dụ mẫu (bước "chọn độ trễ" của agent, đừng chép):**
 Thước đo: tỉ lệ lần chạy mà độ trễ agent dùng để tính tiền khác độ trễ theo tracking DB. Dữ liệu: sự kiện `proposal.delay_days_used`
