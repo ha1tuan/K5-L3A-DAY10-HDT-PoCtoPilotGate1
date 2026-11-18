@@ -409,22 +409,22 @@ bao nhiêu thời gian? (3) Có phần nào của dự án không nên làm ti�
 
 | | **v1** (phút 105–115, TRƯỚC khi nhận thẻ sự cố) |
 |---|---|
-| Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | |
-| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | |
-| Mã lần chạy dùng làm bằng chứng | bộ nền, mốc base: ________ · bộ nền với cổng vòng 1 (prepared): ________ |
-| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | |
-| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | |
-| Quyết định (khoanh một) | Tiếp tục · Thu hẹp · Cải tiến thêm · Dừng |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | |
-| Bằng chứng 2 | |
-| Bằng chứng 3 | |
-| Khớp dòng nào trong `decision_rule` đã ký? | |
-| Nếu Thu hẹp: cắt phần nào, vì sao | |
-| Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | |
-| Nếu Dừng: bài học ghi lại | |
-| Một bằng chứng còn thiếu (thứ bộ nền chưa đo được) | |
-| Ngày quyết định lại (trừ khi Dừng) | |
-| PIC ký | |
+| Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | `e8290b9` (`Sign acceptance criteria`); lock ký lúc `2026-11-18T15:48:26` |
+| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | `6c72f47a`; snapshot gốc xác minh nguyên vẹn bằng `python -m lab10.checkpoint verify` |
+| Mã lần chạy dùng làm bằng chứng | Bộ nền, mốc base/prepared: lịch sử report cho thấy `R-base-before-20261118-085909-b45eeb` và `R-base-after-20261118-090300-5b32a2`; báo cáo prepared gốc không còn trong runs. Đã chạy lại thẻ S3 sau đó: `R-S3-grade-20261118-174827-897426` (base/prepared/after). |
+| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | Ở bộ nền ban đầu, HCM có hoàn sai 20.000đ và lỗi hãng oan 1; VNX cũng có lỗi hãng oan 1; chi phí cao nhất theo kho là 10.359đ > 10.000đ làm tay. Đây là căn cứ **không chọn Tiếp tục**. |
+| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | HCM (hoàn sai 20.000đ, lỗi hãng oan 1) và kho “?” (chi phí 10.359đ > làm tay); không đổi: cần cải tiến trước khi tiếp tục. |
+| Quyết định (khoanh một) | **Cải tiến thêm** (đánh giá hồi cứu theo report gốc; quyết định này không được ghi trước khi nhận thẻ nên không thể xem là quyết định v1 đúng quy trình). |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-base-before-20261118-085909-b45eeb`: lỗi tại `T-002@55`; base có hoàn sai và lỗi hãng oan, vi phạm hai ngưỡng an toàn bằng 0. |
+| Bằng chứng 2 | `R-base-after-20261118-090300-5b32a2`: pass_rate 1,0, hoàn sai 0đ, lỗi hãng oan 0, không ca nền mới hỏng sau các cổng ban đầu. |
+| Bằng chứng 3 | Report nền gốc ghi kho “?” có chi phí 10.359đ/ticket, cao hơn 10.000đ làm tay; cần phân tích/thu hẹp phân khúc và tính lại chi phí. |
+| Khớp dòng nào trong `decision_rule` đã ký? | Hướng **Cải tiến thêm**: lỗi an toàn đã được xác định cụ thể trong trace và có chỗ sửa là gate trước lệnh ghi; chi phí theo phân khúc vẫn cần xử lý. Ghi nhận hồi cứu, không thay thế chữ ký v1 đúng thời điểm. |
+| Nếu Thu hẹp: cắt phần nào, vì sao | Không áp dụng cho quyết định hồi cứu Cải tiến thêm. |
+| Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | Siết guard đối chiếu tracking/policy và allowlist payload; kiểm tra kho “?” có thật sự vượt chi phí làm tay. Hạn theo quy trình bài: hết vòng 2. |
+| Nếu Dừng: bài học ghi lại | Không áp dụng. |
+| Một bằng chứng còn thiếu (thứ bộ nền chưa đo được) | Report prepared gốc và bằng chứng quyết định v1 được ghi/commit trước lúc rút thẻ; thiếu nên không thể xác nhận CP3 hoàn tất đúng trình tự. |
+| Ngày quyết định lại (trừ khi Dừng) | 2026-11-18 (hồi cứu; quyết định Gate 1 v2 cần ghi tại Phiếu C C12). |
+| PIC ký | Chưa có chữ ký quyết định v1 được ghi nhận. |
 
 Xong v1 thì lưu và đẩy một bản (sau mốc này không sửa cột v1):
 

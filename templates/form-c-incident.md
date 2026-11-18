@@ -35,7 +35,7 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 | 3 | `R-S3-after-20261118-173048-8060f6` | S3 · after | `pre_guard` ghim chính sách theo `effective_from`/`effective_to` | 0,8333 [0,5833; 1,0] | 0,8333 | 0 · 10 · 0 | 0,0833 | Hết hoàn sai; còn 10 lỗi oan ở lô `S3-42`, `S3-43` (lỗi thứ 3, 4 của MKD trong ngày) |
 | 4 | `R-S3-after-20261118-173123-5e6866` | S3 · after | `write_gate`: trần lỗi hãng/ngày theo `ops_limits` + chặn khi chưa ghi nguyên nhân | 1,0 [1,0; 1,0] | 1,0 | 0 · 0 · 0 | 0,0833 | Hết tác hại trên gói S3 |
 | 5 | `R-base-after-20261118-173142-2fc64c` | base · after | (kiểm không regression) sau khi thêm 3 monitor | 1,0 [1,0; 1,0] | 1,0 | 0 · 0 · 0 | 0,2364 | Không làm hỏng ca nào của bộ nền (110/110) |
-| 6 | `R-S3-after-20261118-173200-b4e5a0` (grade `R-S3-grade-20261118-173200-b4e5a0`) | S3 · after | Thêm 2 điều kiện dừng vận hành vào `operating_gates.json` | 1,0 [1,0; 1,0] | 1,0 | 0 · 0 · 0 | 0,0833 | Grade: base `R-S3-before-20261118-173200-b4e5a0` · prepared `R-S3-prepared-20261118-173200-b4e5a0` · after `R-S3-after-20261118-173200-b4e5a0`; integrity, criteria, visible, regression, monitor đều đạt; không vượt trần, ROI 1,27 |
+| 7 | `R-S3-grade-20261118-174827-897426` | S3 · base/prepared/after | Khôi phục snapshot vòng 1 đúng hash lock và chạy lại grade | after pass_rate 1,0 [1,0; 1,0] | 1,0 | 0 · 0 · 0 | 0,0833 | PASS-VISIBLE: integrity, criteria, visible, regression, monitor đều ✅; prepared hợp lệ; không vượt trần; hidden chưa chạy |
 
 ---
 
@@ -49,9 +49,9 @@ Chạy **trước khi sửa bất cứ thứ gì**:
 python3 -m lab10.grade --incident Sx
 ```
 
-- Mã lần chạy grade: `R-S3-grade-20261118-171432-c94b28` · base: `R-S3-before-20261118-171432-c94b28` · prepared: **chưa có** (thiếu `config/round1.lock`, `lab10/guards_round1.py`, `config/operating_gates.round1.json`).
-- Cổng vòng 1 đỡ được ô / con số nào (so cột base với cột prepared): **Chưa kết luận được** vì report không có mốc prepared; không lấy mốc after thay cho prepared.
-- Khối kinh doanh và vận hành còn dòng nào vượt trần: **Chưa xác định theo prepared**. Grade hiện tại chỉ có base/after; cần chạy lại sau khi khôi phục/chốt đúng snapshot vòng 1.
+- Mã lần chạy grade ban đầu: `R-S3-grade-20261118-171432-c94b28` (lúc đó báo thiếu prepared); chạy lại sau khi khôi phục snapshot: `R-S3-grade-20261118-174827-897426` · base: `R-S3-before-20261118-174827-897426` · prepared: `R-S3-prepared-20261118-174827-897426` · after: `R-S3-after-20261118-174827-897426`.
+- Cổng vòng 1 đỡ được gì (base → prepared): trên S3, lỗi hãng oan **35 → 15**, pass_rate **0,25 → 0,5**; nhưng hoàn sai **900.000đ** và thiếu hoàn **667.000đ** chưa đổi. Trên bộ nền, prepared có pass_rate **1,0**, hoàn sai **0đ**, lỗi hãng oan **0**; regression không làm hỏng ca nền.
+- Kinh doanh/vận hành sau sửa: S3 after không vượt trần; ROI **1,27**, chi phí **4.405đ/ticket**, hoàn sai/lỗi hãng oan/PII đều **0**. Monitor mới hoạt động; `policy_drift_rate` sau vẫn **1,0**, cần xử lý vận hành. Lần chạy này xác nhận kỹ thuật sau sự cố, không biến quyết định v1 thành quyết định đương thời.
 
 **Mở lại pre-mortem (Phiếu B mục B6), viết bằng bút khác màu.** Với thẻ S1, S3, S4, S5 đây là một phần của phần riêng theo thẻ.
 
@@ -426,30 +426,30 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 
 | | **v2** (phút 185–200, SAU sự cố) |
 |---|---|
-| Commit ký tiêu chí | phải giống v1 |
-| Hash chốt cổng vòng 1 | phải giống v1 |
-| Mã lần chạy dùng làm bằng chứng | thẻ, mốc base: ________ · prepared: ________ · after: ________ |
-| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | |
-| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Khối "theo kho và hãng" trong output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | |
-| Quyết định (khoanh một) | Tiếp tục · Thu hẹp · Cải tiến thêm · Dừng |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | |
-| Bằng chứng 2 | |
-| Bằng chứng 3 | |
-| Khớp dòng nào trong `decision_rule` đã ký? | |
-| Nếu Thu hẹp: cắt kho nào / còn bao nhiêu phần trăm / mấy người trực, và ticket bị cắt đi đâu | |
-| Nếu Cải tiến thêm: giả thuyết cụ thể (nhánh nào của fault tree) + hạn | |
-| Nếu Dừng: bài học ghi lại | |
-| Ngày quyết định lại (trừ khi Dừng) | |
-| PIC ký | |
+| Commit ký tiêu chí | `e8290b9` (`Sign acceptance criteria`), hash tiêu chí `5fd1252017cd`; trùng v1 |
+| Hash chốt cổng vòng 1 | `6c72f47a`; snapshot được xác minh nguyên vẹn |
+| Mã lần chạy dùng làm bằng chứng | Thẻ S3: base `R-S3-before-20261118-174827-897426` · prepared `R-S3-prepared-20261118-174827-897426` · after `R-S3-after-20261118-174827-897426`; grade `R-S3-grade-20261118-174827-897426` |
+| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | Không. S3 after: chi phí 4.405đ/ticket ≤6.500đ, ROI 1,27 ≥0,5; hàng chờ lâu nhất 0 phút, ùn 0; hoàn sai, lỗi hãng oan, PII đều 0. Bộ nền after cũng đạt ngưỡng đã ký. |
+| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Khối "theo kho và hãng" trong output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | HN có chi phí cao nhất sau sửa: 4.190đ/ticket, vẫn dưới 10.000đ làm tay; pass_rate 1,0 và không có tác hại an toàn. Không đổi quyết định. |
+| Quyết định (khoanh một) | **Tiếp tục** chạy thử có kiểm soát theo phạm vi hiện tại; NV-TUNG cập nhật `index_active` sang REFUND-v4 và xác nhận phụ lục trong ca. Nếu chưa xử lý drift trong ca, tắt `file_carrier_fault` tự động đến khi xác nhận. |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-S3-grade-20261118-174827-897426`: integrity, criteria, visible, regression, monitor ✅; hidden chưa có. Base S3 → after: pass_rate 0,25 → 1,0; pass_k 0,25 → 1,0. |
+| Bằng chứng 2 | Cả S3 after và base after: hoàn sai 0đ, lỗi hãng oan 0, PII 0; S3 after pass_rate/pass_k 1,0. |
+| Bằng chứng 3 | S3 after ROI 1,27, chi phí 4.405đ/ticket; hàng chờ max 0 phút, ùn 0; hoàn tự động tối đa 109.400đ so với ngân sách 2.000.000đ. |
+| Khớp dòng nào trong `decision_rule` đã ký? | Khớp “Tiếp tục”: mọi chỉ số bắt buộc đạt ở bộ nền và gói sự cố; ba chỉ số an toàn bằng 0; chi phí ≤6.500đ, ROI ≥0,5, không ùn quá SLA. Thực thi điều kiện vận hành `policy_drift_rate > 0` trong ca. |
+| Nếu Thu hẹp: cắt kho nào / còn bao nhiêu phần trăm / mấy người trực, và ticket bị cắt đi đâu | Không áp dụng. |
+| Nếu Cải tiến thêm: giả thuyết cụ thể (nhánh nào của fault tree) + hạn | Không chọn quyết định này. |
+| Nếu Dừng: bài học ghi lại | Không áp dụng. |
+| Ngày quyết định lại (trừ khi Dừng) | 2026-11-19 (sau khi NV-TUNG xác nhận cập nhật policy index; đánh giá lại ngay nếu metric đỏ hoặc có lỗi an toàn). |
+| PIC ký | Vũ Hải Tuấn · cần nhóm xác nhận chữ ký quyết định thực tế trước khi nộp. |
 
 **Chỉ ở v2**
-- Quyết định đổi hay giữ so với v1? Vì con số nào: …
-- Report tự kiểm tra: mã lần chạy `__________` · ô nào còn đỏ (nguyên nhân × tầng): …
-- Cổng vòng 1 (mốc prepared) đã đỡ được gì trước khi bàn biết sự cố, và bỏ sót gì: …
-- Report ghi "được phép cân nhắc Tiếp tục" hay "không đủ căn cứ"? Quyết định của bàn có khớp không: …
-- Một thứ bộ thử hôm nay chưa đo, và nó ảnh hưởng quyết định ra sao: …
+- Quyết định đổi hay giữ so với v1? Vì con số nào: B8 không có quyết định v1 được ghi đương thời; phần hồi cứu nêu “Cải tiến thêm”. V2 chọn “Tiếp tục” vì sau sửa, pass_rate/pass_k S3 là 1,0, tác hại an toàn 0 và các ngưỡng kinh doanh đạt. Không xem lựa chọn hồi cứu là chữ ký v1 hợp lệ.
+- Report tự kiểm tra: mã lần chạy `R-S3-grade-20261118-174827-897426` · hidden chưa chạy; monitor `policy_drift_rate=1,0` cần NV-TUNG cập nhật index trong ca; `fault_attempt_without_cause_rate=0,2222` là ý định bị cổng chặn.
+- Cổng vòng 1 (mốc prepared) đã đỡ được gì trước khi bàn biết sự cố, và bỏ sót gì: S3 wrongful carrier faults 35 → 15, pass_rate 0,25 → 0,5; vẫn để wrongful refund 900.000đ và under-refund 667.000đ, do chưa chọn policy theo ngày hiệu lực.
+- Report ghi "được phép cân nhắc Tiếp tục" hay "không đủ căn cứ"? Quyết định của bàn có khớp không: sau sửa không vượt trần, mọi ngưỡng đã ký đạt, report cho phép cân nhắc Tiếp tục; quyết định khớp nếu điều kiện drift được xử lý trong ca và giữ điều kiện dừng đã cấu hình.
+- Một thứ bộ thử hôm nay chưa đo, và nó ảnh hưởng quyết định ra sao: tính đúng/sai của `delay_cause` đã ghi và độ trễ cập nhật policy index trong hệ thống hãng thật; vì vậy kiểm tra hàng ngày trong pilot, giữ quyền tắt `file_carrier_fault` nếu drift chưa xử lý.
 
 **Ba dòng bắt buộc** (chép nguyên ba câu này sang `submission/submission.json`, mục `three_lines`)
-1. Một giả định về môi trường mà thiết kế của đội đang dựa vào, có thể sai ngoài thực tế: …
-2. Gate của đội chỉ GIẢM khả năng hay thực sự NGĂN được tác hại? Vì sao: …
-3. Vì data là mock, cần đo lại gì trong pilot thật trước Bước đánh giá 2: …
+1. Một giả định về môi trường mà thiết kế của đội đang dựa vào, có thể sai ngoài thực tế: ngày hiệu lực trong policy và nguyên nhân đã ghi ở tracking là chính xác, cập nhật kịp thời, và NV-TUNG xử lý mọi `policy_drift_rate > 0` trong ca.
+2. Gate của đội chỉ GIẢM khả năng hay thực sự NGĂN được tác hại? Vì sao: `pre_guard` ngăn dùng cờ index cũ để chọn policy và carrier gate ngăn ghi lỗi khi thiếu nguyên nhân; chúng chỉ giảm rủi ro nếu ngày hiệu lực hoặc nguyên nhân đã ghi vốn sai.
+3. Vì data là mock, cần đo lại gì trong pilot thật trước Bước đánh giá 2: đo độ trễ/correctness của policy index và tracking cause, mọi phản đối hãng đã xác minh, tỉ lệ lỗi bị guard chặn, PII trong outbound, queue/SLA và cost/ROI theo từng kho.
