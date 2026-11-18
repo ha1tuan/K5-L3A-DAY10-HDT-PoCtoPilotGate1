@@ -1,12 +1,16 @@
 {
-  "team": "",
-  "members": [],
-  "incident": "",
-  "decision_v1": "",
-  "decision_v2": "",
+  "team": "K5-L3A-DAY10-HDT-PoCtoPilotGate1",
+  "members": [
+    "VuHaiTuan-2A202603689",
+    "PhanVanDien-2A202603653",
+    "NguyenThiThuHa-2A202603719"
+  ],
+  "incident": "S3",
+  "decision_v1": "Cải tiến thêm",
+  "decision_v2": "Tiếp tục",
   "three_lines": {
-    "environment_assumption": "",
-    "reduce_or_prevent": "",
-    "measure_in_pilot": ""
+    "environment_assumption": "ngày hiệu lực trong policy và nguyên nhân đã ghi ở tracking là chính xác, cập nhật kịp thời, và NV-TUNG xử lý mọi `policy_drift_rate > 0` trong ca.",
+    "reduce_or_prevent": "`pre_guard` ngăn dùng cờ index cũ để chọn policy và carrier gate ngăn ghi lỗi khi thiếu nguyên nhân; chúng chỉ giảm rủi ro nếu ngày hiệu lực hoặc nguyên nhân đã ghi vốn sai.",
+    "measure_in_pilot": "đo độ trễ/correctness của policy index và tracking cause, mọi phản đối hãng đã xác minh, tỉ lệ lỗi bị guard chặn, PII trong outbound, queue/SLA và cost/ROI theo từng kho."
   }
 }
