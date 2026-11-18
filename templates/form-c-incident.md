@@ -76,33 +76,33 @@ python3 -m lab10.trace --suite Sx --ticket <ID> --seed 11
 Ba loại lỗi: **giới hạn của hệ thống** · **lỗi ngữ cảnh** · **lỗi chìm** (cả người dùng lẫn hệ thống đều không nhận ra; nguy hiểm nhất,
 người chịu hại thường là bên thứ ba). Định nghĩa đầy đủ và ví dụ: Phiếu B mục B2.
 
-**Tác hại của thẻ:** cho ai `____` · đo bằng gì `____` · bao nhiêu ở mốc base `____`
+**Tác hại của thẻ:** khách hàng và hãng/tài xế (LogiX chịu tổn thất/đối soát) · đo bằng `wrongful_refund_vnd` và `wrongful_carrier_faults` · mốc base của gói S3: **900.000đ hoàn sai và 35 lỗi hãng oan** (report grade `R-S3-grade-20261118-171432-c94b28`, visible/base, tổng trên các seed)
 
 ### Phần 1 · Ghi lỗi (bằng chứng là mã ticket@seed và dòng trace, không tả chung chung)
 
 | # | Lỗi: người ta thấy gì (dán dòng trace / sổ cái) | Ai gặp, ai chịu | Hệ trọng (thấp / cao) | Loại lỗi (giới hạn hệ thống / ngữ cảnh / chìm) |
 |---|---|---|---|---|
-| 1 | | | | |
-| 2 | | | | |
-| 3 | | | | |
+| 1 | `S3-02@11`: policy trace chọn `REFUND-v3`; `proposal.amount_vnd=0`; agent trả lời “chưa đủ điều kiện”. Nhãn yêu cầu hoàn **18.000đ** (trễ 2 ngày, `REFUND-v4` đã hiệu lực). | Khách C-01 bị từ chối quyền lợi; LogiX mất niềm tin và phải xử lý lại yêu cầu. | Cao | Lỗi ngữ cảnh (chính sách/nguồn bản sao lỗi thời) |
+| 2 | `S3-01@11`: `tracking.cause=FORCE_MAJEURE`; `policy=REFUND-v3`; `file_carrier_fault` ghi MKD/TX-MKD-07. Nhãn yêu cầu `faults: []`; v4 không cho ghi lỗi hãng vì bão. | Hãng Mekong Delta Ship và tài xế bị quy lỗi/phạt; LogiX chịu tranh chấp đối tác. | Cao | Lỗi chìm (tác hại cho bên thứ ba, không hiện ra với khách) |
+| 3 | `S3-20@11`: tracking có `cause_recorded:false` và `delay_cause:null`, nhưng `tracking.cause` bị mặc định thành `CARRIER`; agent vẫn ghi lỗi MKD. Nhãn yêu cầu `faults: []`. | Hãng/tài xế bị quy lỗi khi chưa có bằng chứng nguyên nhân; kế toán/đối soát phải sửa sai. | Cao | Lỗi chìm (thiếu dữ liệu bị hiểu nhầm thành xác nhận) |
 
 ### Phần 2 · Tìm nguồn (đánh dấu câu nào đúng với từng lỗi)
 
 | Câu hỏi | Lỗi 1 | Lỗi 2 | Lỗi 3 |
 |---|---|---|---|
-| **Đầu vào:** hệ thống có tự diễn giải / sửa đầu vào của người dùng theo cách họ không lường? Có đặt sai trọng số cho một lời nói hay tín hiệu của người dùng? | | | |
-| **Độ liên quan:** hệ thống có thiếu dữ liệu cần để quyết đúng? Dữ liệu vào có nhiễu, thiếu ổn định? | | | |
-| **Thứ bậc hệ thống:** có hai hệ thống cùng ghi / cùng theo dõi một thứ mà không rõ bên nào là chủ (ví dụ CSKH hoàn tay và trợ lý cùng ghi sổ)? | | | |
-| **Trạng thái hỏng:** nhiều lỗi cộng lại có làm tính năng không dùng được (ví dụ LLM lỗi liên tiếp)? | | | |
+| **Đầu vào:** hệ thống có tự diễn giải / sửa đầu vào của người dùng theo cách họ không lường? Có đặt sai trọng số cho một lời nói hay tín hiệu của người dùng? | Có: cue “chính sách mới” không làm agent xác minh phiên bản theo ngày. | Không: ticket nói bão, nhưng lỗi chính là chính sách stale. | Không: lỗi đến từ trạng thái tracking thiếu, không phải câu khách. |
+| **Độ liên quan:** hệ thống có thiếu dữ liệu cần để quyết đúng? Dữ liệu vào có nhiễu, thiếu ổn định? | Có: policy v3 được chọn dù `as_of=2026-12-02`, sau ngày v4 hiệu lực. | Có: dùng `fault_causes` của v3 thay vì v4 theo ngày. | Có: `delay_cause` trống và `cause_recorded=false`, nhưng trace vẫn đưa ra `CARRIER`. |
+| **Thứ bậc hệ thống:** có hai hệ thống cùng ghi / cùng theo dõi một thứ mà không rõ bên nào là chủ (ví dụ CSKH hoàn tay và trợ lý cùng ghi sổ)? | Có: nguồn sự thật là ngày hiệu lực trong `policies`; cờ bản sao `index_active` lại quyết định policy agent dùng. | Có: `effective_from/effective_to` và `index_active` mâu thuẫn. | Có: tracking chưa xác nhận nguyên nhân nhưng logic suy diễn trong agent biến null thành `CARRIER`. |
+| **Trạng thái hỏng:** nhiều lỗi cộng lại có làm tính năng không dùng được (ví dụ LLM lỗi liên tiếp)? | Không phải trạng thái hỏng liên tiếp; là lỗi chọn policy lặp lại trên ticket thuộc thời kỳ mới. | Không; một lỗi cấu hình policy đủ gây quy lỗi oan. | Có nguy cơ lặp trên mọi parcel thiếu `delay_cause`; cần đo riêng số lần thử ghi lỗi khi `cause_recorded=false`. |
 
 ### Phần 3 · Hướng xử lý (mỗi lỗi một ô)
 
 | | Lỗi 1 | Lỗi 2 | Lỗi 3 |
 |---|---|---|---|
-| Vì sao người gặp coi đây là lỗi | | | |
-| Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | | | |
-| Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | | | |
-| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | | | |
+| Vì sao người gặp coi đây là lỗi | Khách đủ điều kiện theo chính sách có hiệu lực nhưng bị từ chối. | Hãng/tài xế bị phạt vì bất khả kháng trong khi v4 loại `FORCE_MAJEURE` khỏi nguyên nhân quy lỗi. | Hãng bị buộc lỗi khi tracking chưa ghi nhận nguyên nhân; “chưa biết” không đồng nghĩa “lỗi hãng”. |
+| Kiểu giải pháp: phản hồi cho người dùng / trao quyền kiểm soát cho người / khác | Khác: chọn policy theo ngày hiệu lực, tính lại quyền lợi và gửi lời giải thích/hoàn đúng. | Trao quyền kiểm soát cho người khi policy chưa đồng bộ; không ghi lỗi hãng, vẫn xét hoàn phí theo policy mới. | Trao quyền cho người đối với kết luận nguyên nhân; không phát lệnh `file_carrier_fault` khi `cause_recorded=false`. |
+| Đường đi của người sau khi có giải pháp (ví dụ: ticket chuyển sang người duyệt → duyệt → khách được trả lời) | Tính lại với v4; nếu số liệu vẫn mơ hồ thì chuyển NV-HANH duyệt; sau đó trả lời và ghi đúng số tiền. | Tắt/deny thao tác ghi lỗi; NV-OANH đối soát khiếu nại hãng; khách vẫn được xử lý hoàn phí theo điều kiện v4. | Chuyển ca cho NV-HANH xác minh tracking; giữ hoàn phí theo entitlement nếu đủ căn cứ, không ghi lỗi hãng cho tới khi nguyên nhân được ghi nhận. |
+| Hệ thống học được gì (tín hiệu ghi lại để theo dõi: tên metric trong `monitors.py`) | Đề xuất `policy_effective_date_mismatch` (đếm policy được dùng ngoài ngày hiệu lực; cần bổ sung ở C8). | Đề xuất `fault_cause_not_allowed_by_effective_policy` (đếm lần thử ghi lỗi khi cause không thuộc policy hiệu lực; cần bổ sung ở C8). | Đề xuất `fault_attempt_without_recorded_cause` (đếm lần thử ghi lỗi khi `cause_recorded=false`; cần bổ sung ở C8). |
 
 Yêu cầu: ít nhất **hai lỗi có nguồn khác nhau** ở phần 2, và ít nhất một lỗi được xếp đúng là **lỗi chìm**.
 
@@ -220,8 +220,9 @@ Mở lại Phiếu B mục B3. Ghi ở đây những dòng đổi so với vòng
 
 | Trường / bảng | Vòng 1 bàn đã coi là (nguồn sự thật / bản sao / chưa hỏi) | Sau khi đọc thẻ thì thấy | Ảnh hưởng tới tiền hay lỗi hãng thế nào |
 |---|---|---|---|
-| | | | |
-| | | | |
+| `policies[].effective_from` / `effective_to` | Vòng 1: nguồn sự thật về ngày hiệu lực; `index_active` được ghi là bản sao có thể lệch | S3 cho thấy ngày hiện tại là `2026-12-02`, v4 có hiệu lực từ `2026-12-01`, nhưng `index_active=true` vẫn nằm ở v3 | Agent chọn v3: từ chối hoàn 18.000đ ở S3-02, cho tự hoàn 180.000đ ở S3-04 dù v4 giới hạn tự động 100.000đ; dùng sai `fault_causes` ở S3-01 |
+| `policies[].index_active` | Vòng 1: bản sao/cờ bật thủ công, không phải nguồn sự thật theo ngày | Cờ báo v3 active trong khi v4 đã bắt đầu hiệu lực; agent trace ghi `policy_id=REFUND-v3` | Ngưỡng hoàn và nguyên nhân lỗi hãng sai cho khách/hãng; phải chọn policy theo ngày hiệu lực hoặc ghim phiên bản đã xác nhận |
+| `parcels[].delay_cause` / `tracking.cause_recorded` | Vòng 1: trường tracking; có thể trống, không được mặc định là bằng chứng lỗi hãng | S3-20 có `delay_cause:null`, `cause_recorded:false`, nhưng trace ghi `cause=CARRIER` | Cấm quy lỗi khi chưa có nguyên nhân được ghi nhận; chuyển người xác minh, tránh phạt oan MKD/tài xế |
 
 ---
 
@@ -231,13 +232,14 @@ Mở lại Phiếu B mục B3. Ghi ở đây những dòng đổi so với vòng
 
 *Mục riêng, không ghi đè HAZOP vòng 1 ở Phiếu B mục B4. Năm guideword và nghĩa của chúng: xem Phiếu B mục B4.*
 
-Tool chọn phân tích: `________________`
+Tool chọn phân tích: `file_carrier_fault` (lệnh ghi phạt hãng/tài xế và tạo thông báo đối tác)
 
 | Tham số / dòng dữ liệu | Guideword (WRONG / INVALID / INCOMPLETE / PERTURBED / INCAPABLE) | Lệch cụ thể (mã ticket, trường dữ liệu của thẻ) | Hậu quả, cho ai | Hiện có gì ngăn? | Gate đề xuất + tầng |
 |---|---|---|---|---|---|
-| | | | | | |
-| | | | | | |
-| | | | | | |
+| `policy_id` / `index_active` | INVALID | `S3-01@11`: `as_of=2026-12-02`, v4 hiệu lực từ 01-12 nhưng event `policy` vẫn là v3; v3 cho `FORCE_MAJEURE` vào `fault_causes`. | Ghi lỗi oan MKD và tài xế vì bão; hãng chịu phạt 120.000đ/lỗi theo thẻ, LogiX chịu tranh chấp. | Guard hiện kiểm theo policy đã chọn; chưa bảo đảm policy được chọn đúng theo ngày hiệu lực. | `pre_guard`: chọn policy duy nhất thỏa `effective_from ≤ as_of` và `effective_to` còn hiệu lực; nếu không duy nhất/không có thì escalate trước khi xử lý ticket (**chặn**). |
+| `delay_cause`, `cause_recorded` | INCOMPLETE | `S3-20@11`: `delay_cause=null`, `cause_recorded=false`, nhưng tracking event có `cause=CARRIER` và agent gọi `file_carrier_fault`. | Quy lỗi hãng/tài xế khi thiếu xác nhận nguồn; tác hại chìm với MKD và đối soát. | Guard kiểm `carrier_at_fault` theo cause/policy nhưng chưa kiểm cờ `cause_recorded`. | `write_gate` cho `file_carrier_fault`: bắt buộc `cause_recorded=true` và cause có trong `fault_causes`; nếu thiếu thì deny thao tác ghi và log lý do (**chặn**). |
+| `late.min_days_fee`, `auto_limit_vnd` | INVALID | `S3-02@11`: agent dùng v3 (ngưỡng phí 3 ngày), trong khi v4 có ngưỡng 2 ngày; `S3-04@11` dùng trần tự động v3 200.000đ thay vì trần v4 100.000đ. | Khách hợp lệ bị từ chối 18.000đ; ca 180.000đ tự hoàn dù phải escalate. | Không có kiểm tra ngày hiệu lực trước proposal; trần host chỉ chặn vượt tổng tiền đã thanh toán, không chặn vượt auto-limit chính sách. | Chọn policy theo ngày hiệu lực và kiểm `amount_vnd ≤ auto_limit_vnd`; vượt trần thì bắt buộc approver hợp lệ hoặc escalate (**chặn**). |
+| `index_active` cập nhật sau ngày ban hành | INCAPABLE | Nhánh chưa thấy riêng trên trace: quy trình triển khai chính sách mới không cập nhật cache/index hoặc không có người xác nhận việc đổi phiên bản lúc 00:00 ngày hiệu lực. | Toàn bộ ca sau ngày đổi bị xử lý theo luật cũ; hoàn sai/thiếu và phạt oan có thể tăng hàng loạt. | Có ngày hiệu lực trong bảng policy, nhưng cờ active do người bật tay và không có cảnh báo lệch. | Monitor so policy đang dùng với policy hiệu lực theo `as_of`; báo động đỏ và tạm dừng `issue_refund`/`file_carrier_fault` nếu lệch (**phát hiện + giới hạn thiệt hại**). |
 
 Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chưa thấy trên trace** lúc viết.
 
@@ -249,9 +251,9 @@ Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chư
 
 ### Câu 3.2 · Một specification mà nếu bị vi phạm thì gây ra tác hại trên thẻ
 
-Kiểm được bằng code hoặc bằng một con số trong report: …
+Kiểm được bằng code hoặc bằng một con số trong report: **Trước mọi lệnh `file_carrier_fault`, phải chọn đúng policy có hiệu lực tại `as_of`; chỉ cho ghi khi `cause_recorded=true`, `delay_cause` thuộc `fault_causes` của policy đó và `delay_days` đạt ngưỡng. Nếu thiếu nguyên nhân hoặc policy hiệu lực không xác định, không ghi lỗi hãng và chuyển người duyệt.**
 
-Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): …
+Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): **`pre_guard(ctx)` xác nhận policy theo `effective_from/effective_to`; `write_gate(ctx, action)` kiểm cause và ngưỡng trước `file_carrier_fault`. Kiểm bằng trace sự kiện `policy`, `tracking.cause_recorded`, `file_carrier_fault` và chỉ số `wrongful_carrier_faults` của report S3.**
 
 ### Câu 3.3 · Một giả định về môi trường mà người thiết kế đã ngầm tin, nhưng nhiều khả năng sai ngoài thực tế
 
